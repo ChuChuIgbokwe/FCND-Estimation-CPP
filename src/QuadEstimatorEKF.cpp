@@ -93,28 +93,28 @@ void QuadEstimatorEKF::UpdateFromIMU(V3F accel, V3F gyro)
   // (replace the code below)
   // make sure you comment it out when you add your own code -- otherwise e.g. you might integrate yaw twice
 
-  // Mat3x3F rotation_matrix = Mat3x3F();
-  // rotation_matrix(0,0) = 1.0;
-  // rotation_matrix(0,1) = sin(rollEst) * tan(pitchEst);
-  // rotation_matrix(0,2) = cos(rollEst) * tan(pitchEst);
-  // rotation_matrix(1,1) = cos(rollEst);
-  // rotation_matrix(1,2) = -sin(rollEst);
-  // rotation_matrix(2,1) = sin(rollEst) / cos(pitchEst);
-  // rotation_matrix(2,2) = cos(rollEst) / cos(pitchEst);
+  Mat3x3F rotation_matrix = Mat3x3F();
+  rotation_matrix(0,0) = 1.0;
+  rotation_matrix(0,1) = sin(rollEst) * tan(pitchEst);
+  rotation_matrix(0,2) = cos(rollEst) * tan(pitchEst);
+  rotation_matrix(1,1) = cos(rollEst);
+  rotation_matrix(1,2) = -sin(rollEst);
+  rotation_matrix(2,1) = sin(rollEst) / cos(pitchEst);
+  rotation_matrix(2,2) = cos(rollEst) / cos(pitchEst);
   
-  // V3F turn_rates_body_frame = rotation_matrix * gyro;
+  V3F turn_rates_body_frame = rotation_matrix * gyro;
+  
+  float predictedRoll = turn_rates_body_frame.x  * dtIMU + rollEst ;
+  float predictedPitch = turn_rates_body_frame.y * dtIMU + pitchEst ;
+  ekfState(6) = turn_rates_body_frame.z * dtIMU + ekfState(6);	// yaw
 
-  // float predictedRoll = turn_rates_body_frame.x + rollEst * dtIMU;
-  // float predictedPitch = turn_rates_body_frame.y + pitchEst * dtIMU;
-  // ekfState(6) = turn_rates_body_frame.z * dtIMU + ekfState(6);	// yaw
 
+  // Quaternion<float> q = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, ekfState(6));
+  // q.IntegrateBodyRate(gyro, dtIMU);
 
-  Quaternion<float> q = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, ekfState(6));
-  q.IntegrateBodyRate(gyro, dtIMU);
-
-  const float predictedRoll = q.Roll();
-  const float predictedPitch = q.Pitch();
-  ekfState(6) = q.Yaw();
+  // const float predictedRoll = q.Roll();
+  // const float predictedPitch = q.Pitch();
+  // ekfState(6) = q.Yaw();
 
 
   // normalize yaw to -pi .. pi
@@ -181,8 +181,13 @@ VectorXf QuadEstimatorEKF::PredictState(VectorXf curState, float dt, V3F accel, 
   Quaternion<float> attitude = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, curState(6));
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
-
-
+  V3F acceleration_inertial_frame = attitude.Rotate_BtoI(accel);
+  predictedState(0) = curState(0) + curState(3)*dt;
+  predictedState(1) = curState(1) + curState(4)*dt;
+  predictedState(2) = curState(2) + curState(5)*dt;
+  predictedState(3) = curState(3) + acceleration_inertial_frame.x * dt; 
+  predictedState(4) = curState(4) + acceleration_inertial_frame.y * dt;  
+  predictedState(5) = curState(5) + acceleration_inertial_frame.z * dt - CONST_GRAVITY * dt;
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
   return predictedState;
@@ -209,7 +214,12 @@ MatrixXf QuadEstimatorEKF::GetRbgPrime(float roll, float pitch, float yaw)
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
   // Full 3D Attitude update
-
+  RbgPrime(0, 0) = -cos(pitch) * sin(yaw);
+  RbgPrime(0, 1) = -sin(roll) * sin(pitch) * sin(yaw) - cos(roll) * cos(yaw);
+  RbgPrime(0, 2) = -cos(roll) * sin(pitch) * sin(yaw) + sin(roll) * sin(yaw);
+  RbgPrime(1, 0) = cos(pitch) * cos(yaw);
+  RbgPrime(1, 1) = sin(roll) * sin(pitch) * sin(yaw) - cos(roll) * sin(yaw);
+  RbgPrime(1, 2) = cos(roll) * sin(pitch) * cos(yaw) + sin(roll) * sin(yaw);
 
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
@@ -256,7 +266,15 @@ void QuadEstimatorEKF::Predict(float dt, V3F accel, V3F gyro)
   gPrime.setIdentity();
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+  gPrime(0,3) = dt;
+  gPrime(1,4) = dt;
+  gPrime(2,5) = dt;
+  
+  gPrime(3, 6) = (RbgPrime(0) * accel).sum() * dt;
+  gPrime(4, 6) = (RbgPrime(1) * accel).sum() * dt;
+  gPrime(5, 6) = (RbgPrime(2) * accel).sum() * dt;
 
+  ekfCov = gPrime * ekfCov * gPrime.transpose() + Q;
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
