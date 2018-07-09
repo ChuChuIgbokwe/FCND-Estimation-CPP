@@ -93,9 +93,29 @@ void QuadEstimatorEKF::UpdateFromIMU(V3F accel, V3F gyro)
   // (replace the code below)
   // make sure you comment it out when you add your own code -- otherwise e.g. you might integrate yaw twice
 
-  float predictedPitch = pitchEst + dtIMU * gyro.y;
-  float predictedRoll = rollEst + dtIMU * gyro.x;
-  ekfState(6) = ekfState(6) + dtIMU * gyro.z;	// yaw
+  // Mat3x3F rotation_matrix = Mat3x3F();
+  // rotation_matrix(0,0) = 1.0;
+  // rotation_matrix(0,1) = sin(rollEst) * tan(pitchEst);
+  // rotation_matrix(0,2) = cos(rollEst) * tan(pitchEst);
+  // rotation_matrix(1,1) = cos(rollEst);
+  // rotation_matrix(1,2) = -sin(rollEst);
+  // rotation_matrix(2,1) = sin(rollEst) / cos(pitchEst);
+  // rotation_matrix(2,2) = cos(rollEst) / cos(pitchEst);
+  
+  // V3F turn_rates_body_frame = rotation_matrix * gyro;
+
+  // float predictedRoll = turn_rates_body_frame.x + rollEst * dtIMU;
+  // float predictedPitch = turn_rates_body_frame.y + pitchEst * dtIMU;
+  // ekfState(6) = turn_rates_body_frame.z * dtIMU + ekfState(6);	// yaw
+
+
+  Quaternion<float> q = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, ekfState(6));
+  q.IntegrateBodyRate(gyro, dtIMU);
+
+  const float predictedRoll = q.Roll();
+  const float predictedPitch = q.Pitch();
+  ekfState(6) = q.Yaw();
+
 
   // normalize yaw to -pi .. pi
   if (ekfState(6) > F_PI) ekfState(6) -= 2.f*F_PI;
@@ -188,6 +208,8 @@ MatrixXf QuadEstimatorEKF::GetRbgPrime(float roll, float pitch, float yaw)
   //   that your calculations are reasonable
 
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
+  // Full 3D Attitude update
+
 
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
