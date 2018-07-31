@@ -108,18 +108,13 @@ void QuadEstimatorEKF::UpdateFromIMU(V3F accel, V3F gyro)
   float predictedPitch = turn_rates_body_frame.y * dtIMU + pitchEst ;
   ekfState(6) = turn_rates_body_frame.z * dtIMU + ekfState(6);	// yaw
 
-
-  // Quaternion<float> q = Quaternion<float>::FromEuler123_RPY(rollEst, pitchEst, ekfState(6));
-  // q.IntegrateBodyRate(gyro, dtIMU);
-
-  // const float predictedRoll = q.Roll();
-  // const float predictedPitch = q.Pitch();
-  // ekfState(6) = q.Yaw();
-
-
   // normalize yaw to -pi .. pi
-  if (ekfState(6) > F_PI) ekfState(6) -= 2.f*F_PI;
-  if (ekfState(6) < -F_PI) ekfState(6) += 2.f*F_PI;
+  if (ekfState(6) > F_PI){
+     ekfState(6) -= 2.f*F_PI;
+  }
+  if (ekfState(6) < -F_PI){ 
+    ekfState(6) += 2.f*F_PI;
+  }
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
@@ -326,14 +321,14 @@ void QuadEstimatorEKF::UpdateFromMag(float magYaw)
   ////////////////////////////// BEGIN STUDENT CODE ///////////////////////////
   hPrime(6) = 1;
 
-    zFromX(0) = ekfState(6);
-    float diff = magYaw - ekfState(6);
-    if (diff > F_PI) {
-        zFromX(0) += 2.f*F_PI;
-    } 
-    else if (diff < -F_PI) {
-        zFromX(0) -= 2.f*F_PI;
-}
+  zFromX(0) = ekfState(6);
+  float diff = magYaw - ekfState(6);
+  if (diff > F_PI) {
+      zFromX(0) += 2.f*F_PI;
+  } 
+  else if (diff < -F_PI) {
+      zFromX(0) -= 2.f*F_PI;
+  }
 
   /////////////////////////////// END STUDENT CODE ////////////////////////////
 
