@@ -1,3 +1,5 @@
+
+
 ############################## SLR SIMPLECONFIG ############################
 # this is a comment. [X] is a namespace. [X:Y] initializes X from Y
 # Namespace and parameter names are not case-sensitive
@@ -18,21 +20,22 @@ kappa = 0.016
 minMotorThrust = .1
 maxMotorThrust = 4.5
 
-# Position control gains
-kpPosXY = 2
-kpPosZ = 2
-KiPosZ = 50
 
-# Velocity control gains
-kpVelXY = 8
-kpVelZ = 8
+# Position control gains 1,1,20
+kpPosXY = 14
+kpPosZ = 17.5 #35
+KiPosZ = 40
 
-# Angle control gains
-kpBank = 12
-kpYaw = 3
+# Velocity control gains 4,4  kpV / kpP should be 4
+kpVelXY = 11 #6
+kpVelZ =  10 #15
 
-# Angle rate gains
-kpPQR = 70, 70, 15
+# Angle control gains 5,1
+kpBank = 10 #14
+kpYaw = 2
+
+# Angle rate gains 23,23,5
+kpPQR = 70,70,10 #95,95,6  #50,50,10
 
 # limits
 maxAscentRate = 5
